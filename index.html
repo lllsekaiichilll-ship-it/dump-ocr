@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align:center; background:#111; color:white; }
+    video { width:100%; max-width:900px; border:3px solid #fff; }
+    button { font-size:24px; padding:15px; margin:10px; }
+    #num { font-size:48px; color:#00ff66; }
+  </style>
+</head>
+<body>
+  <h2>ダンプOCR</h2>
+  <video id="video" autoplay playsinline></video>
+  <div>読取番号</div>
+  <div id="num">----</div>
+  <button onclick="startCamera()">カメラ開始</button>
+  <button onclick="startOCR()">自動読取開始</button>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+let lastNumber = "";
+let working = false;
+
+async function startCamera() {
+  try {
+    alert("カメラ開始");
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+
+    document.getElementById("video").srcObject = stream;
+
+    alert("カメラ接続成功");
+  } catch(e) {
+    alert("エラー: " + e.name + " " + e.message);
+  }
+}
+
+function startOCR() {
+  setInterval(readNumber, 6000);
+  alert("自動読取を開始しました");
+}
+
+async function readNumber() {
+  if (working) return;
+  working = true;
+
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+
+  const result = await Tesseract.recognize(canvas, "eng");
+  const text = result.data.text;
+
+  const match = text.match(/\d{4}/);
+
+  if (match) {
+    const number = match[0];
+    document.getElementById("num").innerText = number;
+
+    if (number !== lastNumber) {
+      lastNumber = number;
+      google.script.run.saveNumber(number);
+    }
+  }
+
+  working = false;
+}
+</script>
+</body>
+</html>
