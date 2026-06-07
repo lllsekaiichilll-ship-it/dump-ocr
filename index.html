@@ -8,13 +8,13 @@ body { font-family:sans-serif; text-align:center; background:#111; color:white; 
 video { width:100%; border:3px solid white; }
 button { font-size:24px; padding:15px; margin:10px; }
 #num { font-size:50px; color:#00ff66; }
-#status { font-size:20px; color:#ffd966; }
+#status { font-size:22px; color:#ffd966; }
 </style>
 </head>
 <body>
 
 <h2>ダンプOCR</h2>
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline muted></video>
 
 <div>読取番号</div>
 <div id="num">----</div>
@@ -28,24 +28,33 @@ button { font-size:24px; padding:15px; margin:10px; }
 <script>
 let lastNumber = "";
 let working = false;
+let timer = null;
 
 async function startCamera() {
   try {
+    document.getElementById("status").innerText = "カメラ起動中...";
+
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } },
       audio: false
     });
-    document.getElementById("video").srcObject = stream;
+
+    const video = document.getElementById("video");
+    video.srcObject = stream;
+    await video.play();
+
     document.getElementById("status").innerText = "カメラ接続成功";
   } catch(e) {
+    document.getElementById("status").innerText = "カメラエラー: " + e.name + " / " + e.message;
     alert("カメラエラー: " + e.name + " / " + e.message);
   }
 }
 
 function startOCR() {
+  if (timer) return;
   document.getElementById("status").innerText = "自動読取中";
   readNumber();
-  setInterval(readNumber, 8000);
+  timer = setInterval(readNumber, 8000);
 }
 
 async function readNumber() {
@@ -78,28 +87,30 @@ async function readNumber() {
     if (match) {
       const number = match[0];
       document.getElementById("num").innerText = number;
-      document.getElementById("status").innerText = number + " を読み取り";
+      document.getElementById("status").innerText = number + " を読み取り・写真保存中";
 
       if (number !== lastNumber) {
         lastNumber = number;
 
-        fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
-         const imageData = canvas.toDataURL("image/jpeg", 0.7);
+        const imageData = canvas.toDataURL("image/jpeg", 0.7);
 
-fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
-  method: "POST",
-  mode: "no-cors",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    number: number,
-    image: imageData
-  })
-});
+        fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            number: number,
+            image: imageData
+          })
+        });
+
+        document.getElementById("status").innerText = number + " を記録しました";
+      } else {
+        document.getElementById("status").innerText = number + " は重複のため記録しません";
       }
     } else {
-      document.getElementById("status").innerText = "4桁なし: " + clean;
+      document.getElementById("status").innerText = "4桁なし";
     }
-
   } catch(e) {
     document.getElementById("status").innerText = "OCRエラー: " + e.message;
   }
