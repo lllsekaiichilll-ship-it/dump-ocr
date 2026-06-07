@@ -71,7 +71,16 @@ async function readNumber() {
 
     if (number !== lastNumber) {
       lastNumber = number;
-      google.script.run.saveNumber(number);
+      fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
+  method: "POST",
+  mode: "no-cors",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    number: number
+  })
+});
     }
   }
 　
