@@ -182,16 +182,14 @@ const match = digits.match(/\d{3,4}/);
 
     const imageData = canvas.toDataURL("image/jpeg", 0.7);
 
-    fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        number: number,
-        image: imageData
-      })
-    });
+    const formData = new FormData();
+formData.append("number", number);
 
+fetch(API_URL, {
+  method: "POST",
+  mode: "no-cors",
+  body: formData
+});
     document.getElementById("status").innerText = number + " を記録しました";
 
   } catch(e) {
