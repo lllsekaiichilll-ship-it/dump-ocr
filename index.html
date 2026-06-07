@@ -1,24 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <style>
-    body { font-family: sans-serif; text-align:center; background:#111; color:white; }
-    video { width:100%; max-width:900px; border:3px solid #fff; }
-    button { font-size:24px; padding:15px; margin:10px; }
-    #num { font-size:48px; color:#00ff66; }
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+body { font-family:sans-serif; text-align:center; background:#111; color:white; }
+video { width:100%; border:3px solid white; }
+button { font-size:24px; padding:15px; margin:10px; }
+#num { font-size:50px; color:#00ff66; }
+#status { font-size:20px; color:#ffd966; }
+</style>
 </head>
 <body>
-  <h2>ダンプOCR</h2>
-  <video id="video" autoplay playsinline></video>
-  <div>読取番号</div>
-  <div id="num">----</div>
-  <button onclick="startCamera()">カメラ開始</button>
-  <button onclick="startOCR()">自動読取開始</button>
 
-  <canvas id="canvas" style="display:none;"></canvas>
+<h2>ダンプOCR</h2>
+<video id="video" autoplay playsinline></video>
+
+<div>読取番号</div>
+<div id="num">----</div>
+<div id="status">待機中</div>
+
+<button onclick="startCamera()">カメラ開始</button>
+<button onclick="startOCR()">自動読取開始</button>
+
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 let lastNumber = "";
@@ -26,26 +31,21 @@ let working = false;
 
 async function startCamera() {
   try {
-    alert("カメラ開始");
-
-   const stream = await navigator.mediaDevices.getUserMedia({
-  video: {
-    facingMode: { ideal: "environment" }
-  },
-  audio: false
-});
-
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
     document.getElementById("video").srcObject = stream;
-
-    alert("カメラ接続成功");
+    document.getElementById("status").innerText = "カメラ接続成功";
   } catch(e) {
-    alert("エラー: " + e.name + " " + e.message);
+    alert("カメラエラー: " + e.name + " / " + e.message);
   }
 }
 
 function startOCR() {
-  setInterval(readNumber, 6000);
-  alert("自動読取を開始しました");
+  document.getElementById("status").innerText = "自動読取中";
+  readNumber();
+  setInterval(readNumber, 8000);
 }
 
 async function readNumber() {
@@ -54,38 +54,53 @@ async function readNumber() {
 
   const video = document.getElementById("video");
   const canvas = document.getElementById("canvas");
+
+  if (!video.videoWidth) {
+    document.getElementById("status").innerText = "カメラ映像待ち";
+    working = false;
+    return;
+  }
+
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video, 0, 0);
-const result = await Tesseract.recognize(canvas, "eng");
-const text = result.data.text;
 
-const match = text.match(/\d{4}/);
-  
+  document.getElementById("status").innerText = "OCR読取中...";
 
-  if (match) {
-    const number = match[0];
-    document.getElementById("num").innerText = number;
+  try {
+    const result = await Tesseract.recognize(canvas, "eng");
+    const text = result.data.text;
+    const clean = text.replace(/\s/g, "");
+    const match = clean.match(/\d{4}/);
 
-    if (number !== lastNumber) {
-      lastNumber = number;
-      fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
-  method: "POST",
-  mode: "no-cors",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    number: number
-  })
-});
+    if (match) {
+      const number = match[0];
+      document.getElementById("num").innerText = number;
+      document.getElementById("status").innerText = number + " を読み取り";
+
+      if (number !== lastNumber) {
+        lastNumber = number;
+
+        fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ number: number })
+        });
+      }
+    } else {
+      document.getElementById("status").innerText = "4桁なし: " + clean;
     }
+
+  } catch(e) {
+    document.getElementById("status").innerText = "OCRエラー: " + e.message;
   }
-　
+
   working = false;
 }
 </script>
+
 </body>
 </html>
