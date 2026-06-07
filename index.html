@@ -156,9 +156,10 @@ const data = await response.json();
 const text =
   data.responses?.[0]?.textAnnotations?.[0]?.description || "";
 
-alert(text);
-const match =
-  text.replace(/[^0-9]/g, "").match(/\d{4}/);
+document.getElementById("status").innerText =
+  "OCR結果: " + text;
+const digits = text.replace(/[^0-9]/g, "");
+const match = digits.match(/\d{3,4}/);
     if (!match) {
       document.getElementById("status").innerText = "4桁なし";
       working = false;
