@@ -154,8 +154,10 @@ const response = await fetch(
 
 const data = await response.json();
 
-const text =
-  data.responses?.[0]?.fullTextAnnotation?.text || "";
+console.log(data);
+
+document.getElementById("status").innerText =
+  JSON.stringify(data);
 
 console.log(text);
 document.getElementById("status").innerText = "OCR結果: " + text;
