@@ -158,7 +158,7 @@ const text =
   data.responses?.[0]?.fullTextAnnotation?.text || "";
 
 console.log(text);
-
+document.getElementById("status").innerText = "OCR結果: " + text;
 const match =
   text.replace(/\s/g, "").match(/\d{4}/);
     if (!match) {
