@@ -84,11 +84,17 @@ async function readNumber() {
         lastNumber = number;
 
         fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ number: number })
-        });
+         const imageData = canvas.toDataURL("image/jpeg", 0.7);
+
+fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
+  method: "POST",
+  mode: "no-cors",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    number: number,
+    image: imageData
+  })
+});
       }
     } else {
       document.getElementById("status").innerText = "4桁なし: " + clean;
