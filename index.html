@@ -6,8 +6,8 @@
 <style>
 body { font-family:sans-serif; text-align:center; background:#111; color:white; }
 video { width:100%; border:3px solid white; }
-button { font-size:24px; padding:15px; margin:10px; }
-#num { font-size:50px; color:#00ff66; }
+button { font-size:28px; padding:18px 40px; margin:12px; }
+#num { font-size:54px; color:#00ff66; }
 #status { font-size:22px; color:#ffd966; }
 </style>
 </head>
@@ -20,15 +20,31 @@ button { font-size:24px; padding:15px; margin:10px; }
 <div id="num">----</div>
 <div id="status">待機中</div>
 
-<button onclick="startCamera()">カメラ開始</button>
-<button onclick="startOCR()">自動読取開始</button>
+<button onclick="startSystem()">開始</button>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-let lastNumber = "";
+const API_URL = "https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec";
+
 let working = false;
 let timer = null;
+let lastSeen = {};
+let cameraStarted = false;
+
+const SAME_NUMBER_WAIT = 60000; // 同じ番号は60秒以内なら記録しない
+
+async function startSystem() {
+  document.getElementById("status").innerText = "開始中...";
+
+  if (!cameraStarted) {
+    await startCamera();
+  }
+
+  setTimeout(() => {
+    startOCR();
+  }, 1500);
+}
 
 async function startCamera() {
   try {
@@ -43,18 +59,23 @@ async function startCamera() {
     video.srcObject = stream;
     await video.play();
 
+    cameraStarted = true;
     document.getElementById("status").innerText = "カメラ接続成功";
   } catch(e) {
-    document.getElementById("status").innerText = "カメラエラー: " + e.name + " / " + e.message;
-    alert("カメラエラー: " + e.name + " / " + e.message);
+    document.getElementById("status").innerText = "カメラエラー: " + e.message;
+    cameraStarted = false;
   }
 }
 
 function startOCR() {
-  if (timer) return;
+  if (timer) {
+    document.getElementById("status").innerText = "すでに自動読取中";
+    return;
+  }
+
   document.getElementById("status").innerText = "自動読取中";
   readNumber();
-  timer = setInterval(readNumber, 8000);
+  timer = setInterval(readNumber, 5000);
 }
 
 async function readNumber() {
@@ -70,23 +91,20 @@ async function readNumber() {
     return;
   }
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  // ナンバーが「やや下」に映る設定
+  const sx = vw * 0.15;
+  const sy = vh * 0.45;
+  const sw = vw * 0.70;
+  const sh = vh * 0.35;
+
+  canvas.width = sw;
+  canvas.height = sh;
 
   const ctx = canvas.getContext("2d");
-  const vw = video.videoWidth;
-const vh = video.videoHeight;
-
-// 画面の中央〜やや下だけを切り取り
-const sx = vw * 0.15;
-const sy = vh * 0.45;
-const sw = vw * 0.70;
-const sh = vh * 0.35;
-
-canvas.width = sw;
-canvas.height = sh;
-
-ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
 
   document.getElementById("status").innerText = "OCR読取中...";
 
@@ -96,33 +114,40 @@ ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
     const clean = text.replace(/\s/g, "");
     const match = clean.match(/\d{4}/);
 
-    if (match) {
-      const number = match[0];
-      document.getElementById("num").innerText = number;
-      document.getElementById("status").innerText = number + " を読み取り・写真保存中";
-
-      if (number !== lastNumber) {
-        lastNumber = number;
-
-        const imageData = canvas.toDataURL("image/jpeg", 0.7);
-
-        fetch("https://script.google.com/macros/s/AKfycbxm6fnx90TUsu35y574v1I4in2eav2alXiNiqV1MAp4Sje3Rx-v6oz-Q5wWtBqrHTE/exec", {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            number: number,
-            image: imageData
-          })
-        });
-
-        document.getElementById("status").innerText = number + " を記録しました";
-      } else {
-        document.getElementById("status").innerText = number + " は重複のため記録しません";
-      }
-    } else {
+    if (!match) {
       document.getElementById("status").innerText = "4桁なし";
+      working = false;
+      return;
     }
+
+    const number = match[0];
+    document.getElementById("num").innerText = number;
+
+    const now = Date.now();
+    const last = lastSeen[number] || 0;
+
+    if (now - last < SAME_NUMBER_WAIT) {
+      document.getElementById("status").innerText = number + " は60秒以内なので記録しません";
+      working = false;
+      return;
+    }
+
+    lastSeen[number] = now;
+
+    const imageData = canvas.toDataURL("image/jpeg", 0.7);
+
+    fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        number: number,
+        image: imageData
+      })
+    });
+
+    document.getElementById("status").innerText = number + " を記録しました";
+
   } catch(e) {
     document.getElementById("status").innerText = "OCRエラー: " + e.message;
   }
