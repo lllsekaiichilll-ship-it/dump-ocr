@@ -59,11 +59,12 @@ async function readNumber() {
 
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video, 0, 0);
-const text = result.data.text;
-console.log(text);
-  const result = await Tesseract.recognize(canvas, "eng", {
+const result = await Tesseract.recognize(canvas, "eng", {
   tessedit_char_whitelist: "0123456789"
 });
+
+const text = result.data.text;
+console.log(text);
   const match = text.replace(/\s/g, "").match(/\d{4}/);
   
 
