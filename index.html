@@ -28,10 +28,12 @@ async function startCamera() {
   try {
     alert("カメラ開始");
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: false
-    });
+   const stream = await navigator.mediaDevices.getUserMedia({
+  video: {
+    facingMode: { ideal: "environment" }
+  },
+  audio: false
+});
 
     document.getElementById("video").srcObject = stream;
 
