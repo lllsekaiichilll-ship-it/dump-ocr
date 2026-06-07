@@ -103,17 +103,42 @@ async function readNumber() {
   canvas.width = sw;
   canvas.height = sh;
 
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  canvas.width = 900;
+canvas.height = 300;
+
+const ctx = canvas.getContext("2d");
+
+// ナンバー付近を拡大して描画
+ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+// 白黒・コントラスト強調
+let img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+let data = img.data;
+
+for (let i = 0; i < data.length; i += 4) {
+  let gray = data[i] * 0.3 + data[i+1] * 0.59 + data[i+2] * 0.11;
+
+  // コントラスト強調
+  gray = gray > 130 ? 255 : 0;
+
+  data[i] = gray;
+  data[i+1] = gray;
+  data[i+2] = gray;
+}
+
+ctx.putImageData(img, 0, 0);
 
   document.getElementById("status").innerText = "OCR読取中...";
 
   try {
-    const result = await Tesseract.recognize(canvas, "eng");
-    const text = result.data.text;
-    const clean = text.replace(/\s/g, "");
-    const match = clean.match(/\d{4}/);
+    const result = await Tesseract.recognize(canvas, "eng", {
+  tessedit_char_whitelist: "0123456789",
+  tessedit_pageseg_mode: "7"
+});
 
+const text = result.data.text;
+const clean = text.replace(/[^0-9]/g, "");
+const match = clean.match(/\d{4}/);
     if (!match) {
       document.getElementById("status").innerText = "4桁なし";
       working = false;
