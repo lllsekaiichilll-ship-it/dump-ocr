@@ -31,7 +31,7 @@ let timer = null;
 let lastSeen = {};
 let cameraStarted = false;
 
-const SAME_NUMBER_WAIT = 60000; // 同じ番号は60秒以内なら記録しない
+const SAME_NUMBER_WAIT = 1,200,000; // 同じ番号は60秒以内なら記録しない
 
 async function startSystem() {
   document.getElementById("status").innerText = "開始中...";
