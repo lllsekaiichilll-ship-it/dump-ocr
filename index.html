@@ -65,7 +65,7 @@ const capabilities = track.getCapabilities();
 
 if (capabilities.zoom) {
   await track.applyConstraints({
-    advanced: [{ zoom: 20.0 }]
+    advanced: [{ zoom: 5.0 }]
   });
 }
 
@@ -116,8 +116,8 @@ const sh = vh * 0.45;
   canvas.width = sw;
   canvas.height = sh;
 
-  canvas.width = 900;
-canvas.height = 300;
+  
+
 
 const ctx = canvas.getContext("2d");
 
