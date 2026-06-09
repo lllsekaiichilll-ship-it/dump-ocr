@@ -90,7 +90,24 @@ function startOCR() {
   readNumber();
   timer = setInterval(readNumber, 1000);
 }
+function stopSystem() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
 
+  const video = document.getElementById("video");
+
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  }
+
+  cameraStarted = false;
+  working = false;
+
+  document.getElementById("status").innerText = "停止しました";
+}
 async function readNumber() {
   if (working) return;
   working = true;
